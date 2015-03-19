@@ -4,11 +4,11 @@ import theano
 import numpy
 from scipy.misc import imresize
 
-from fuel.streams import DataStreamWrapper
+from fuel.transformers import Transformer
 
 
-class RandomPatch(DataStreamWrapper):
-    def __init__(self, data_stream, scale_size, patch_size, source='features'):
+class RandomPatch(Transformer):
+    def __init__(self, data_stream, scale_size, patch_size, source='images'):
         super(RandomPatch, self).__init__(data_stream)
         self.scale_size = scale_size
         self.patch_size = patch_size

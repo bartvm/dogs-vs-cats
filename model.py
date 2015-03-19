@@ -10,7 +10,7 @@ from blocks.bricks.conv import (ConvolutionalLayer, ConvolutionalSequence,
                                 Flattener)
 from blocks.initialization import Uniform, Constant
 
-x = tensor.tensor4('features')
+x = tensor.tensor4('images')
 y = tensor.lmatrix('targets')
 
 # Convolutional layers
@@ -64,8 +64,9 @@ for layer in convnet.layers:
 from blocks.main_loop import MainLoop
 from blocks.algorithms import GradientDescent, Momentum
 from blocks.extensions import Printing, SimpleExtension
-from blocks.extensions.saveload import SerializeMainLoop
+from blocks.extensions.saveload import Checkpoint
 from blocks.extensions.monitoring import DataStreamMonitoring
+from blocks.graph import ComputationGraph
 
 from dataset import DogsVsCats
 from streams import RandomPatch
@@ -76,7 +77,8 @@ training_stream = DataStream(DogsVsCats('train'),
                              iteration_scheme=ShuffledScheme(20000, 32))
 training_stream = RandomPatch(training_stream, 270, (260, 260))
 
-algorithm = GradientDescent(cost=cost, step_rule=Momentum(learning_rate=0.001,
+cg = ComputationGraph([cost])
+algorithm = GradientDescent(cost=cost, params=cg.parameters, step_rule=Momentum(learning_rate=0.001,
                                                           momentum=0.1))
 
 main_loop = MainLoop(
@@ -91,7 +93,7 @@ main_loop = MainLoop(
             prefix='valid'
         ),
         Printing(),
-        SerializeMainLoop('dogs_vs_cats.pkl', after_every_epoch=True),
+        Checkpoint('dogs_vs_cats.pkl', after_epoch=True),
     ]
 )
 main_loop.run()

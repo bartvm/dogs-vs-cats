@@ -3,12 +3,12 @@ import os
 import h5py
 
 from fuel import config
-from fuel.datasets import InMemoryDataset
+from fuel.datasets import IndexableDataset
+from fuel.utils import do_not_pickle_attributes
 
-
-@InMemoryDataset.lazy_properties('features', 'targets')
-class DogsVsCats(InMemoryDataset):
-    provides_sources = ('features', 'targets')
+@do_not_pickle_attributes('f')
+class DogsVsCats(IndexableDataset):
+    provides_sources = ('images', 'targets')
 
     def __init__(self, which_set):
         if which_set == 'train':
@@ -22,17 +22,14 @@ class DogsVsCats(InMemoryDataset):
             self.stop = 25000
         else:
             raise ValueError
-        self.f = h5py.File(os.path.join(config.data_path, 'dogs_vs_cats',
-                                        'dogs_vs_cats.hdf5'))
+        self.load()
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state['f']
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.f = h5py.File(os.path.join(config.data_path, 'dogs_vs_cats',
-                                        'dogs_vs_cats.hdf5'))
+    def load(self):
+        if os.path.exists('dogs_vs_cats.hdf5'):
+            self.f = h5py.File('dogs_vs_cats.hdf5')
+        else:
+            self.f = h5py.File(os.path.join(config.data_path, 'cats_vs_dogs',
+                'dogs_vs_cats.hdf5'))
 
     @property
     def num_examples(self):
