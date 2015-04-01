@@ -3,6 +3,7 @@ from collections import OrderedDict
 import theano
 import numpy
 from scipy.misc import imresize
+from scipy import ndimage
 
 from fuel.transformers import Transformer
 
@@ -34,6 +35,11 @@ class RandomPatch(Transformer):
             if y:
                 y = numpy.random.randint(y)
             patch = image[y:y + patch_width, x:x + patch_height]
+            if numpy.random.rand() < 0.5:
+                patch = numpy.fliplr(patch)
+            if numpy.random.rand() < 0.1:
+                patch = ndimage.rotate(patch, numpy.random.randint(-30, 30),
+                                       reshape=False, mode='nearest', order=1)
             # Convert to float and c, 0, 1 format
             patch = (patch.transpose((2, 0, 1)).astype(theano.config.floatX) /
                      255)

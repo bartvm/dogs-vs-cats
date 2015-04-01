@@ -6,6 +6,7 @@ from fuel import config
 from fuel.datasets import IndexableDataset
 from fuel.utils import do_not_pickle_attributes
 
+
 @do_not_pickle_attributes('f')
 class DogsVsCats(IndexableDataset):
     provides_sources = ('images', 'targets')
@@ -29,7 +30,7 @@ class DogsVsCats(IndexableDataset):
             self.f = h5py.File('dogs_vs_cats.hdf5')
         else:
             self.f = h5py.File(os.path.join(config.data_path, 'cats_vs_dogs',
-                'dogs_vs_cats.hdf5'))
+                                            'dogs_vs_cats.hdf5'))
 
     @property
     def num_examples(self):
