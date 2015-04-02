@@ -57,12 +57,10 @@ def main(job_id):
     from blocks.extensions.predicates import OnLogRecord
     from blocks.graph import ComputationGraph
 
-    from dataset import DogsVsCats
-    from streams import RandomPatch
-    from fuel.streams import ServerDataStream, DataStream
-    from fuel.schemes import SequentialScheme
+    from fuel.streams import ServerDataStream
 
     training_stream = ServerDataStream(('images', 'targets'), port=job_id)
+    valid_stream = ServerDataStream(('images', 'targets'), port=job_id + 50)
 
     cg = ComputationGraph([cost])
     algorithm = GradientDescent(cost=cost, params=cg.parameters,
@@ -76,15 +74,7 @@ def main(job_id):
         data_stream=training_stream, algorithm=algorithm,
         extensions=[
             Timing(),
-            DataStreamMonitoring(
-                [cost],
-                RandomPatch(
-                    DataStream(
-                        DogsVsCats('valid'),
-                        iteration_scheme=SequentialScheme(2500, 32)),
-                    270, (260, 260)),
-                prefix='valid'
-            ),
+            DataStreamMonitoring([cost], valid_stream, prefix='valid'),
             track_cost,
             Checkpoint('{}.pkl'.format(job_id), after_epoch=True)
             .add_condition('after_epoch',
@@ -97,4 +87,4 @@ def main(job_id):
     main_loop.run()
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(int(sys.argv[1]))

@@ -1,6 +1,7 @@
 import os
 
 import h5py
+import numpy
 
 from fuel import config
 from fuel.datasets import IndexableDataset
@@ -14,9 +15,6 @@ class DogsVsCats(IndexableDataset):
     def __init__(self, which_set):
         if which_set == 'train':
             self.start = 0
-            self.stop = 20000
-        elif which_set == 'valid':
-            self.start = 20000
             self.stop = 22500
         elif which_set == 'test':
             self.start = 22500
@@ -29,7 +27,7 @@ class DogsVsCats(IndexableDataset):
         if os.path.exists('dogs_vs_cats.hdf5'):
             self.f = h5py.File('dogs_vs_cats.hdf5')
         else:
-            self.f = h5py.File(os.path.join(config.data_path, 'cats_vs_dogs',
+            self.f = h5py.File(os.path.join(config.data_path,
                                             'dogs_vs_cats.hdf5'))
 
     @property
@@ -40,10 +38,13 @@ class DogsVsCats(IndexableDataset):
         if state is not None:
             raise ValueError
         images, targets = [], []
-        request = sorted([i + self.start for i in request])
-        for image, shape, target in zip(self.f['images'][request],
-                                        self.f['shapes'][request],
-                                        self.f['labels'][request]):
+        indices, reverse = numpy.unique(request, return_inverse=True)
+        indices = list(indices)
+        for image, shape, target in zip(self.f['images'][indices],
+                                        self.f['shapes'][indices],
+                                        self.f['labels'][indices]):
             images.append(image.reshape(shape))
             targets.append([target])
+        images = numpy.asarray(images)[reverse]
+        targets = numpy.asarray(targets)[reverse]
         return self.filter_sources((images, targets))

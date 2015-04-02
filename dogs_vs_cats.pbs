@@ -1,0 +1,26 @@
+#!/bin/bash
+#PBS -A ...
+#PBS -l walltime=12:00:00
+#PBS -l nodes=1:gpus=2
+
+cd ${PBS_O_WORKDIR}
+
+cp $HOME/dogs_vs_cats.hdf5 $LSCRATCH/dogs_vs_cats.hdf5
+
+PORT1=$MOAB_JOBID
+PORT2=`echo $MOAB_JOBID + 1000 | bc`
+
+export FUEL_DATA_PATH=$LSCRATCH
+python server.py $PORT1 &
+SERVER1_PID = $!
+python server.py $PORT2 &
+SERVER2_PID = $!
+
+THEANO_FLAGS=device=gpu python model.py $PORT1 2> $PORT1.err 1> $PORT1.out &
+TRAINER1_PID = $!
+THEANO_FLAGS=device=gpu python model.py $PORT2 2> $PORT2.err 2> $PORT2.out &
+TRAINER2_PID = $!
+
+wait $TRAINER1_PID $TRAINER2_PID
+
+kill -9 $SERVER1_PID $SERVER2_PID

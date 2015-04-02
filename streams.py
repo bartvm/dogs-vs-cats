@@ -9,11 +9,13 @@ from fuel.transformers import Transformer
 
 
 class RandomPatch(Transformer):
-    def __init__(self, data_stream, scale_size, patch_size, source='images'):
+    def __init__(self, data_stream, scale_size, patch_size, source='images',
+                 p_rotate=0.1, p_flip=0.5):
         super(RandomPatch, self).__init__(data_stream)
         self.scale_size = scale_size
         self.patch_size = patch_size
         self.patch_source = source
+        self.p_rotate, self.p_flip = p_rotate, p_flip
 
     def get_data(self, request=None):
         if request is not None:
@@ -35,9 +37,9 @@ class RandomPatch(Transformer):
             if y:
                 y = numpy.random.randint(y)
             patch = image[y:y + patch_width, x:x + patch_height]
-            if numpy.random.rand() < 0.5:
+            if numpy.random.rand() < self.p_flip:
                 patch = numpy.fliplr(patch)
-            if numpy.random.rand() < 0.1:
+            if numpy.random.rand() < self.p_rotate:
                 patch = ndimage.rotate(patch, numpy.random.randint(-30, 30),
                                        reshape=False, mode='nearest', order=1)
             # Convert to float and c, 0, 1 format
