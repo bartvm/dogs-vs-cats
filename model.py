@@ -1,4 +1,5 @@
 import sys
+import numpy
 
 
 def main(job_id):
@@ -55,17 +56,33 @@ def main(job_id):
     from blocks.extensions.monitoring import DataStreamMonitoring
     from blocks.extensions.training import TrackTheBest
     from blocks.extensions.predicates import OnLogRecord
-    from blocks.graph import ComputationGraph
+    from blocks.graph import ComputationGraph, apply_dropout
+    from blocks.roles import INPUT
+    from blocks.bricks import Linear
+    from blocks.filter import VariableFilter
 
     from fuel.streams import ServerDataStream
+
+    momentum = numpy.random.rand() * 0.4 + 0.5  # 0.5 - 0.9
+    dropout_prob = numpy.random.rand() * 0.3 + 0.3  # 0.3 - 0.6
+    learning_rate = 10 ** (numpy.random.rand() - 3)  # 10 ** -2 - 10 ** -3
+
+    for param, value in zip(['Momentum', 'Dropout', 'Learning rate'],
+                            [momentum, dropout_prob, learning_rate]):
+        print('{}: {}'.format(param, value))
 
     training_stream = ServerDataStream(('images', 'targets'), port=job_id)
     valid_stream = ServerDataStream(('images', 'targets'), port=job_id + 50)
 
     cg = ComputationGraph([cost])
-    algorithm = GradientDescent(cost=cost, params=cg.parameters,
-                                step_rule=Momentum(learning_rate=0.001,
-                                                   momentum=0.9))
+    dropout_cg = apply_dropout(
+        cg, VariableFilter(roles=[INPUT], bricks=[Linear])(cg.variables),
+        dropout_prob
+    )
+    algorithm = GradientDescent(cost=dropout_cg.outputs[0],
+                                params=cg.parameters,
+                                step_rule=Momentum(learning_rate=learning_rate,
+                                                   momentum=momentum))
 
     track_cost = TrackTheBest('valid_cost', after_epoch=True,
                               after_batch=False)
@@ -81,7 +98,7 @@ def main(job_id):
                            OnLogRecord(track_cost.notification_name),
                            ('best_{}.pkl'.format(job_id),)),
             Printing(),
-            FinishAfter(after_n_epochs=150),
+            FinishAfter(after_n_epochs=200),
         ]
     )
     main_loop.run()
