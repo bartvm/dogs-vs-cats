@@ -16,6 +16,9 @@ class DogsVsCats(IndexableDataset):
         if which_set == 'train':
             self.start = 0
             self.stop = 22500
+        elif which_set == 'valid':
+            self.start = 20000
+            self.stop = 22500
         elif which_set == 'test':
             self.start = 22500
             self.stop = 25000
@@ -38,6 +41,10 @@ class DogsVsCats(IndexableDataset):
         if state is not None:
             raise ValueError
         images, targets = [], []
+        if isinstance(request, int):
+            request = request + self.start
+        else:
+            request = [i + self.start for i in request]
         indices, reverse = numpy.unique(request, return_inverse=True)
         indices = list(indices)
         for image, shape, target in zip(self.f['images'][indices],
