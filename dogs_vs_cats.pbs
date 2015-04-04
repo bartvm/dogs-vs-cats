@@ -1,24 +1,33 @@
 #!/bin/bash
-#PBS -A ...
+#PBS -A jvb-000-ag
 #PBS -l walltime=12:00:00
 #PBS -l nodes=1:gpus=2
 
-# cd ${PBS_O_WORKDIR}
+cd ${PBS_O_WORKDIR}
 
-# cp $HOME/dogs_vs_cats.hdf5 $LSCRATCH/dogs_vs_cats.hdf5
+cp $HOME/dogs_vs_cats.hdf5 $LSCRATCH/dogs_vs_cats.hdf5
+
+# Requires PIL/Pillow, numexpr, pandas, pytables, pyzmq
 
 PORT1=$MOAB_JOBID
 PORT2=`echo $MOAB_JOBID + 1000 | bc`
 
+export THEANO_FLAGS=optimizer_including=cudnn,floatX=float32
+
+export LD_LIBRARY_PATH=$HOME/cudnn-6.5-linux-x64-v2:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$HOME/cudnn-6.5-linux-x64-v2:$LIBRARY_PATH
+export CPATH=$HOME/cudnn-6.5-linux-x64-v2:$CPATH
+
 export FUEL_DATA_PATH=$LSCRATCH
+
 python server.py $PORT1 &
 SERVER1_PID=$!
 python server.py $PORT2 &
 SERVER2_PID=$!
 
-THEANO_FLAGS=device=gpu python model.py $PORT1 2> $PORT1.err 1> $PORT1.out &
+THEANO_FLAGS=device=gpu,compiledir=$LSCRATCH/$PORT1,$THEANO_FLAGS python model.py $PORT1 2> $PORT1.err 1> $PORT1.out &
 TRAINER1_PID=$!
-THEANO_FLAGS=device=gpu python model.py $PORT2 2> $PORT2.err 1> $PORT2.out &
+THEANO_FLAGS=device=gpu,compiledir=$LSCRATCH/$PORT2,$THEANO_FLAGS python model.py $PORT2 2> $PORT2.err 1> $PORT2.out &
 TRAINER2_PID=$!
 
 wait $TRAINER1_PID $TRAINER2_PID

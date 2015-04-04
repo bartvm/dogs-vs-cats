@@ -5,6 +5,7 @@ from multiprocessing import Process
 from fuel.schemes import SequentialScheme
 from fuel.server import start_server
 from fuel.streams import DataStream
+from fuel.transformers import ForceFloatX
 
 from dataset import DogsVsCats
 from streams import RandomPatch
@@ -17,6 +18,7 @@ def open_stream(examples, port, p_rotate=0, p_flip=0):
     )
     stream = RandomPatch(stream, 280, (260, 260),
                          p_rotate=p_rotate, p_flip=p_flip)
+    stream = ForceFloatX(stream)
     start_server(stream, port=port)
 
 if __name__ == "__main__":
